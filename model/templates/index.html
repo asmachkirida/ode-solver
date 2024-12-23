@@ -1,0 +1,116 @@
+<!-- templates/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ODE Solver</title>
+    <link rel="stylesheet" href="/static/styles.css">  <!-- Linking to static CSS -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!-- Add Chart.js CDN -->
+</head>
+<body>
+    <h1>ODE Solver</h1>
+    <form id="ode-form" method="POST" action="/solve-ode">
+        <label for="ode_type">Choose ODE Type:</label>
+        <select id="ode_type" name="ode_type">
+            <option value="first_order">First Order</option>
+            <option value="second_order">Second Order</option>
+        </select><br>
+
+        <label for="x_start">Start Value for x:</label>
+        <input type="number" id="x_start" name="x_start" value="0"><br>
+
+        <label for="x_end">End Value for x:</label>
+        <input type="number" id="x_end" name="x_end" value="1"><br>
+
+        <button type="submit">Solve ODE</button>
+    </form>
+
+    <div id="solution">
+        <h2>Solution:</h2>
+        <pre id="solution-text"></pre>
+    </div>
+
+    <!-- Add a canvas element for the graph -->
+    <div>
+        <h2>Graph of Solution:</h2>
+        <canvas id="solution-graph"></canvas>
+    </div>
+
+    <script>
+    let chartInstance = null; // Declare a global variable to hold the chart instance
+
+document.getElementById("ode-form").onsubmit = async function(event) {
+    event.preventDefault();
+
+    const formData = new FormData(event.target);
+    const response = await fetch('/solve-ode', {
+        method: 'POST',
+        body: formData
+    });
+
+    const result = await response.json();
+    console.log(result); // Log the response for debugging
+
+    if (result.error) {
+        document.getElementById('solution-text').textContent = result.error;
+    } else {
+        const solution = result.solution;
+        let output = "x, solution\n";
+        solution.forEach((value, index) => {
+            output += `${result.x[index]}, ${value}\n`;
+        });
+        document.getElementById('solution-text').textContent = output;
+
+        // Render the graph using Chart.js
+        const ctx = document.getElementById('solution-graph').getContext('2d');
+
+        // Destroy the previous chart if it exists
+        if (chartInstance) {
+            chartInstance.destroy();
+        }
+
+        // Create a new chart
+        chartInstance = new Chart(ctx, {
+            type: 'line', // Line chart
+            data: {
+                labels: result.x, // x values
+                datasets: [{
+                    label: 'ODE Solution',
+                    data: solution, // corresponding solution values
+                    borderColor: 'rgba(75, 192, 192, 1)', // Line color
+                    fill: false, // Don't fill the area under the line
+                    tension: 0.1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'x'
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Solution'
+                        }
+                    }
+                }
+            }
+        });
+    }
+}
+
+
+    </script>
+    
+</body>
+</html>
